@@ -1,137 +1,204 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './TicTacToe.css';
-import circle_icon from '../Assests/circle.png';
-import cross_icon from '../Assests/cross.png';
 
-let data = [" ", " ", " ", " ", " ", " ", " ", " ", " "];
-const TicTacToe = () => {
-    const [count, setCount] = useState(0);
-    const [lock, setLock] = useState(false);
-    const [player1Score, setPlayer1Score] = useState(0);
-    const [player2Score, setPlayer2Score] = useState(0);
-    const titleRef = useRef(null);
-    
-    useEffect(() => {
-        const savedPlayer1Score = localStorage.getItem("player1Score");
-        const savedPlayer2Score = localStorage.getItem("player2Score");
-        if (savedPlayer1Score) setPlayer1Score(parseInt(savedPlayer1Score));
-        if (savedPlayer2Score) setPlayer2Score(parseInt(savedPlayer2Score));
-    }, []);
+const MultiPlayerTicTacToe = () => {
+  const [playerCount, setPlayerCount] = useState(2);
+  const [boardSize, setBoardSize] = useState(3);
+  const [currentPlayer, setCurrentPlayer] = useState(0);
+  const [gameBoard, setGameBoard] = useState([]);
+  const [scores, setScores] = useState({});
+  const [lock, setLock] = useState(false);
+  const [winningCells, setWinningCells] = useState([]); 
+  const titleRef = useRef(null);
 
-    function toggle(e, num) {
-        if (lock || data[num] !== " ") return;
+  const getPlayerSymbol = (index) => String.fromCharCode(65 + index);
 
-        if (count % 2 === 0) {
-            e.target.innerHTML = `<img src='${cross_icon}'>`;
-            data[num] = "x";
-        } else {
-            e.target.innerHTML = `<img src='${circle_icon}'>`;
-            data[num] = "o";
+  const getBoardSize = (players) => {
+    if (players <= 3) return 3;
+    return 6; 
+  };
+
+  const initializeBoard = (size) => {
+    const newBoard = Array(size).fill(null).map(() => Array(size).fill(" "));
+    setGameBoard(newBoard);
+    setCurrentPlayer(0);
+    setLock(false);
+    setWinningCells([]); 
+    if (titleRef.current) {
+      titleRef.current.innerHTML = "Multi-Player Tic Tac Toe";
+    }
+  };
+
+  const initializeScores = (count) => {
+    const newScores = {};
+    for (let i = 0; i < count; i++) {
+      newScores[getPlayerSymbol(i)] = 0;
+    }
+    setScores(newScores);
+  };
+
+  useEffect(() => {
+    const savedScores = localStorage.getItem("ticTacToeScores");
+    if (savedScores) {
+      setScores(JSON.parse(savedScores));
+    } else {
+      initializeScores(playerCount);
+    }
+    const newSize = getBoardSize(playerCount);
+    setBoardSize(newSize);
+    initializeBoard(newSize);
+  }, [playerCount]);
+
+  const handlePlayerCountChange = (count) => {
+    setPlayerCount(count);
+    const newSize = getBoardSize(count);
+    setBoardSize(newSize);
+    initializeScores(count);
+    initializeBoard(newSize);
+  };
+  const checkWin = (board, row, col, symbol) => {
+    const size = board.length;
+    const winCondition = size === 3 ? 3 : 4;
+    for (let c = 0; c <= size - winCondition; c++) {
+      let count = 0;
+      let winningCells = [];
+      for (let i = 0; i < winCondition; i++) {
+        if (board[row][c + i] === symbol) {
+          count++;
+          winningCells.push([row, c + i]);
         }
-        setCount(count + 1);
-        checkWin();
+      }
+      if (count === winCondition) return winningCells;
     }
-const checkWin=()=>{
-     if(data[0]===data[1] && data[1]===data[2] && data[2]!==" "){
-         won(data[2]);
-     }
-    else if(data[3]===data[4] && data[4]===data[5] && data[5]!==" "){
-        won(data[5]);
-    }
-    else if(data[6]===data[7] && data[7]===data[8] && data[8]!==" "){
-        won(data[8]);
-    }
-    else if(data[3]===data[4] && data[4]===data[5] && data[5]!==" "){
-        won(data[5]);
-    }
-    else if(data[0]===data[3] && data[3]===data[6] && data[6]!==" "){
-        won(data[6]);
-    }
-    else if(data[1]===data[4] && data[4]===data[7] && data[7]!==" "){
-       won(data[7]);
-    }
-    else if(data[2]===data[5] && data[5]===data[8] && data[8]!==" "){
-      won(data[8]);
-    }
-    else if(data[0]===data[4] && data[4]===data[8] && data[8]!==" "){
-       won(data[8]);
-    }
-    else if(data[0]===data[1] && data[1]===data[2] && data[2]!==" "){
-      won(data[2]);
-    }
-    else if(data[2]===data[4] && data[4]===data[6] && data[6]!==" "){
-      won(data[6]);
-    }
-    else if(!data.includes(" ")) {
-       titleRef.current.innerHTML = "It's a Draw!";
-        setLock(true);
-    }
-
-}
-
-    const won = (winner) => {
-        setLock(true);
-        titleRef.current.innerHTML = `Congratulations: ${winner === "x" ? `<img src='${cross_icon}'>` : `<img src='${circle_icon}'>`} Wins`;
-
-        if (winner === "x") {
-            const newScore = player1Score + 1;
-            setPlayer1Score(newScore);
-            localStorage.setItem("player1Score", newScore);
-        } else {
-            const newScore = player2Score + 1;
-            setPlayer2Score(newScore);
-            localStorage.setItem("player2Score", newScore);
+    for (let r = 0; r <= size - winCondition; r++) {
+      let count = 0;
+      let winningCells = [];
+      for (let i = 0; i < winCondition; i++) {
+        if (board[r + i][col] === symbol) {
+          count++;
+          winningCells.push([r + i, col]);
         }
-    };
+      }
+      if (count === winCondition) return winningCells;
+    }
+    for (let r = 0; r <= size - winCondition; r++) {
+      for (let c = 0; c <= size - winCondition; c++) {
+        let count = 0;
+        let winningCells = [];
+        for (let i = 0; i < winCondition; i++) {
+          if (board[r + i][c + i] === symbol) {
+            count++;
+            winningCells.push([r + i, c + i]);
+          }
+        }
+        if (count === winCondition) return winningCells;
+      }
+    }
+    for (let r = 0; r <= size - winCondition; r++) {
+      for (let c = size - 1; c >= winCondition - 1; c--) {
+        let count = 0;
+        let winningCells = [];
+        for (let i = 0; i < winCondition; i++) {
+          if (board[r + i][c - i] === symbol) {
+            count++;
+            winningCells.push([r + i, c - i]);
+          }
+        }
+        if (count === winCondition) return winningCells;
+      }
+    }
 
-    function reset() {
-        setLock(false);
-        data = [" ", " ", " ", " ", " ", " ", " ", " ", " "];
-        titleRef.current.innerHTML = "Tic Tac Toe Game";
-        
-        const cells = document.querySelectorAll(".boxes");
-        cells.forEach(cell => (cell.innerHTML = ""));
-        
-        setCount(0); 
+    return null;
+  };
+
+  const handleCellClick = (row, col) => {
+    if (lock || gameBoard[row][col] !== " ") return;
+
+    const newBoard = gameBoard.map(r => [...r]);
+    const symbol = getPlayerSymbol(currentPlayer);
+    newBoard[row][col] = symbol;
+    setGameBoard(newBoard);
+
+    const winningSequence = checkWin(newBoard, row, col, symbol);
+    if (winningSequence) {
+      setLock(true);
+      setWinningCells(winningSequence); 
+      titleRef.current.innerHTML = `Player ${symbol} Wins!`;
+      const newScores = { ...scores };
+      newScores[symbol]++;
+      setScores(newScores);
+      localStorage.setItem("ticTacToeScores", JSON.stringify(newScores));
+    } else if (newBoard.every(row => row.every(cell => cell !== " "))) {
+      setLock(true);
+      titleRef.current.innerHTML = "It's a Draw!";
+    } else {
+      setCurrentPlayer((currentPlayer + 1) % playerCount);
     }
-    function resetScores() {
-        setPlayer1Score(0);
-        setPlayer2Score(0);
-        localStorage.removeItem("player1Score");
-        localStorage.removeItem("player2Score");
+  };
+
+  const resetGame = () => {
+    initializeBoard(boardSize);
+  };
+
+  const resetScores = () => {
+    const newScores = {};
+    for (let i = 0; i < playerCount; i++) {
+      newScores[getPlayerSymbol(i)] = 0;
     }
-    return (
-        <div className="container">
-            <h1 className="title" ref={titleRef}>Tic Tac Toe Game</h1>
-            <div className="scoreboard">
-                <div>Player 1 (X) Score: {player1Score}</div>
-                <div>Player 2 (O) Score: {player2Score}</div>
-            </div>
-            <div className="horizontal-layout">
-                <div className={`player player1 ${count % 2 === 0 ? "active" : ""}`}>Player 1 (X)</div>
-                <div className="board">
-                    <div className="row">
-                        <div className="boxes" onClick={(e) => toggle(e, 0)}></div>
-                        <div className="boxes" onClick={(e) => toggle(e, 1)}></div>
-                        <div className="boxes" onClick={(e) => toggle(e, 2)}></div>
-                    </div>
-                    <div className="row">
-                        <div className="boxes" onClick={(e) => toggle(e, 3)}></div>
-                        <div className="boxes" onClick={(e) => toggle(e, 4)}></div>
-                        <div className="boxes" onClick={(e) => toggle(e, 5)}></div>
-                    </div>
-                    <div className="row">
-                        <div className="boxes" onClick={(e) => toggle(e, 6)}></div>
-                        <div className="boxes" onClick={(e) => toggle(e, 7)}></div>
-                        <div className="boxes" onClick={(e) => toggle(e, 8)}></div>
-                    </div>
+    setScores(newScores);
+    localStorage.removeItem("ticTacToeScores");
+  };
+
+  return (
+    <div className="container">
+      <h1 className="title" ref={titleRef}>Multi-Player Tic Tac Toe</h1>
+      
+      <div className="controls">
+        <select 
+          className="player-select"
+          value={playerCount}
+          onChange={(e) => handlePlayerCountChange(Number(e.target.value))}
+        >
+          <option value={2}>2 Players</option>
+          <option value={3}>3 Players</option>
+          <option value={4}>4 Players</option>
+          <option value={5}>5 Players</option>
+        </select>
+      </div>
+
+      <div className="scoreboard">
+        {Object.entries(scores).map(([player, score]) => (
+          <div key={player} className={`score ${player === getPlayerSymbol(currentPlayer) ? 'active' : ''}`}>
+            Player {player}: {score}
+          </div>
+        ))}
+      </div>
+
+      <div className="board">
+        {gameBoard.map((row, rowIndex) => (
+          <div key={rowIndex} className="row">
+            {row.map((cell, colIndex) => {
+              const isWinningCell = winningCells.some(([r, c]) => r === rowIndex && c === colIndex);
+              return (
+                <div
+                  key={colIndex}
+                  className={`boxes ${cell !== " " ? "filled" : ""} ${isWinningCell ? "winning-cell" : ""}`}
+                  onClick={() => handleCellClick(rowIndex, colIndex)}
+                >
+                  {cell !== " " && <span className="player-symbol">{cell}</span>}
                 </div>
-                <div className={`player player2 ${count % 2 !== 0 ? "active" : ""}`}>Player 2 (O)</div>
-            </div>
-            <button className="reset" onClick={reset}>Reset</button>
-            <button className="resets" onClick={resetScores}>Reset Scores</button>
-        </div>
-    );
-}
+              );
+            })}
+          </div>
+        ))}
+      </div>
 
-export default TicTacToe;
+      <div className="button-container">
+        <button className="reset" onClick={resetGame}>Reset Game</button>
+        <button className="resets" onClick={resetScores}>Reset Scores</button>
+      </div>
+    </div>
+  );
+};
+
+export default MultiPlayerTicTacToe;
